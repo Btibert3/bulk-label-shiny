@@ -41,8 +41,11 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  
+  filtered_df = reactive({mtcars2 %>% filter(is.na(label))})
+  
   output$plot1 <- renderPlot({
-    ggplot(mtcars2, aes(wt, mpg)) + geom_point()
+    ggplot(filtered_df(), aes(wt, mpg)) + geom_point()
   })
   
   # output$click_info <- renderPrint({
