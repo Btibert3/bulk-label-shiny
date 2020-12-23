@@ -3,10 +3,13 @@
 
 library(ggplot2)
 library(Cairo)   # For nicer ggplot2 output when deployed on Linux
+suppressPackageStartupMessages(library(dplyr))
 
 # We'll use a subset of the mtcars data set, with fewer columns
 # so that it prints nicely
 mtcars2 <- mtcars[, c("mpg", "cyl", "disp", "hp", "wt", "am", "gear")]
+mtcars2$label = NA
+mtcars2$id = 1:nrow(mtcars2)
 
 
 ui <- fluidPage(
@@ -32,7 +35,7 @@ ui <- fluidPage(
            br(),
            textInput("tag", "Label to apply"),
            br(),
-           actionButton()
+           actionButton('update', 'Add Label')
     )
   )
 )
@@ -51,6 +54,14 @@ server <- function(input, output) {
   output$brush_info <- renderPrint({
     brushedPoints(mtcars2, input$plot1_brush)
   })
+  
+  observeEvent(input$update, {
+    df = brushedPoints(mtcars2, input$plot1_brush)
+    mtcars2[mtcars2$id %in% df$id, "label"] <<- input$tag
+  })
+  
+  
 }
 
 shinyApp(ui, server)
+
