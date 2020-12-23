@@ -40,7 +40,7 @@ ui <- fluidPage(
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   output$plot1 <- renderPlot({
     ggplot(mtcars2, aes(wt, mpg)) + geom_point()
   })
@@ -58,6 +58,10 @@ server <- function(input, output) {
   observeEvent(input$update, {
     df = brushedPoints(mtcars2, input$plot1_brush)
     mtcars2[mtcars2$id %in% df$id, "label"] <<- input$tag
+    # clear out the input tag
+    updateTextInput(session, "tag", value="")
+    # reset the brush
+    session$resetBrush("plot1_brush")
   })
   
   
