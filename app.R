@@ -30,7 +30,9 @@ ui <- fluidPage(
     column(width = 6,
            h4("Annotation Tool"),
            br(),
-           textInput("tag", "Label to apply")
+           textInput("tag", "Label to apply"),
+           br(),
+           actionButton()
     )
   )
 )
