@@ -4,11 +4,17 @@ library(Cairo)   # For nicer ggplot2 output when deployed on Linux
 suppressPackageStartupMessages(library(dplyr))
 
 
-# We'll use a subset of the mtcars data set, with fewer columns
-# so that it prints nicely
-mtcars2 <- mtcars[, c("mpg", "cyl", "disp", "hp", "wt", "am", "gear")]
-mtcars2$label = NA
-mtcars2$id = 1:nrow(mtcars2)
+
+# hardcoded - the dataset that you want your app to use
+# do any cleanup to test
+df = read.csv("~/Downloads/messages-to-label.csv")
+
+## necessary for the app below
+df$shiny_label = NA
+df$shiny_id = 1:nrow(df)
+
+## the columns from your dataset above that you want to show in the table
+COLS = c("text", "shiny_label")
 
 
 ui <- fluidPage(
@@ -30,10 +36,11 @@ ui <- fluidPage(
   ),
   br(),
   fluidRow(
-    column(width = 6,
+    column(width = 12,
            h4("Selected/Brushed points"),
            verbatimTextOutput("brush_info")
-    ),
+    )),
+  fluidRow(
     column(width = 6,
            h4("Annotation Tool"),
            br(),
@@ -43,24 +50,27 @@ ui <- fluidPage(
            br(),
            br(),
            br(),
-           downloadButton("downloadFile", "Download the dataset")
+           downloadButton("downloadFile", "Download the dataset"),
+           br(),
+           br()
     )
   )
 )
 
 server <- function(input, output, session) {
   
-  mt <- reactiveValues(data=mtcars2)
-  filtered_df = reactive({mt$data %>% filter(is.na(label))})
+  mt <- reactiveValues(data=df)
+  filtered_df = reactive({mt$data %>% filter(is.na(shiny_label))})
   
   ranges <- reactiveValues(x = NULL, y = NULL)
   
   output$plot1 <- renderPlot({
-    ggplot(filtered_df(), aes(wt, mpg)) + 
-      geom_point() + 
+    ggplot(filtered_df(), aes(x, y)) + 
+      geom_point(alpha=.5) + 
       coord_cartesian(xlim=ranges$x, 
                       ylim=ranges$y, 
-                      expand = TRUE)
+                      expand = TRUE) + 
+      theme_bw()
   })
 
   observeEvent(input$plot1_dblclick, {
@@ -77,19 +87,19 @@ server <- function(input, output, session) {
     
   
   output$brush_info <- renderPrint({
-    brushedPoints(mtcars2, input$plot1_brush)
+    brushedPoints(df, input$plot1_brush)[COLS]
   })
   
   observeEvent(input$update, {
-    df = brushedPoints(mtcars2, input$plot1_brush)
-    mtcars2[mtcars2$id %in% df$id, "label"] <<- input$tag
+    tmp = brushedPoints(df, input$plot1_brush)
+    df[df$shiny_id %in% tmp$shiny_id, "shiny_label"] <<- input$tag
     # clear out the input tag
     updateTextInput(session, "tag", value="")
     # reset the brush
     session$resetBrush("plot1_brush")
     
     #update the reactive dataframe
-    mt$data <- mtcars2
+    mt$data <- df
   })
   
   # Downloadable csv of selected dataset ----
@@ -98,7 +108,7 @@ server <- function(input, output, session) {
       paste("data", ".csv", sep = "")
     },
     content = function(file) {
-      write.csv(mtcars2, file, row.names = FALSE)
+      write.csv(df, file, row.names = FALSE)
     }
   )
   
