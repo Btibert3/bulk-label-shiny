@@ -65,6 +65,8 @@ server <- function(input, output, session) {
     updateTextInput(session, "tag", value="")
     # reset the brush
     session$resetBrush("plot1_brush")
+    
+    mtcars2 <<- mtcars2
   })
   
   
