@@ -1,9 +1,8 @@
-## TODO: reactive dataframe, once have label, not shown in plot
-
-
+# libraries
 library(ggplot2)
 library(Cairo)   # For nicer ggplot2 output when deployed on Linux
 suppressPackageStartupMessages(library(dplyr))
+library(DT)
 
 # We'll use a subset of the mtcars data set, with fewer columns
 # so that it prints nicely
@@ -35,24 +34,22 @@ ui <- fluidPage(
            br(),
            textInput("tag", "Label to apply"),
            br(),
-           actionButton('update', 'Add Label')
+           actionButton('update', 'Add Label'),
+           br(),
+           br(),
+           br(),
+           downloadButton("downloadFile", "Download the dataset")
     )
   )
 )
 
 server <- function(input, output, session) {
-  
-  filtered_df = reactive({mtcars2 %>% filter(is.na(label))})
+  mt <- reactiveValues(data=mtcars2)
+  filtered_df = reactive({mt$data %>% filter(is.na(label))})
   
   output$plot1 <- renderPlot({
     ggplot(filtered_df(), aes(wt, mpg)) + geom_point()
   })
-  
-  # output$click_info <- renderPrint({
-  #   # Because it's a ggplot2, we don't need to supply xvar or yvar; if this
-  #   # were a base graphics plot, we'd need those.
-  #   nearPoints(mtcars2, input$plot1_click, addDist = TRUE)
-  # })
   
   output$brush_info <- renderPrint({
     brushedPoints(mtcars2, input$plot1_brush)
@@ -66,11 +63,20 @@ server <- function(input, output, session) {
     # reset the brush
     session$resetBrush("plot1_brush")
     
-    mtcars2 <<- mtcars2
+    #update the reactive dataframe
+    mt$data <- mtcars2
   })
   
+  # Downloadable csv of selected dataset ----
+  output$downloadFile <- downloadHandler(
+    filename = function() {
+      paste("data", ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(mtcars2, file, row.names = FALSE)
+    }
+  )
   
 }
 
 shinyApp(ui, server)
-
