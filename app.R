@@ -1,13 +1,13 @@
 # libraries
 library(ggplot2)
-library(Cairo)   # For nicer ggplot2 output when deployed on Linux
+#library(Cairo)   # For nicer ggplot2 output when deployed on Linux
 suppressPackageStartupMessages(library(dplyr))
 
 
 
 # hardcoded - the dataset that you want your app to use
 # do any cleanup to test
-df = read.csv("~/Downloads/messages-to-label.csv")
+df = read.csv("messages-to-label.csv")
 
 ## necessary for the app below
 df$shiny_label = NA
@@ -50,7 +50,8 @@ ui <- fluidPage(
            br(),
            br(),
            br(),
-           downloadButton("downloadFile", "Download the dataset"),
+    column(widget=6, 
+           downloadButton("downloadFile", "Download the dataset")),
            br(),
            br()
     )
@@ -58,18 +59,18 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
-  
+
   mt <- reactiveValues(data=df)
   filtered_df = reactive({mt$data %>% filter(is.na(shiny_label))})
-  
+
   ranges <- reactiveValues(x = NULL, y = NULL)
-  
+
   output$plot1 <- renderPlot({
-    ggplot(filtered_df(), aes(x, y)) + 
-      geom_point(alpha=.5) + 
-      coord_cartesian(xlim=ranges$x, 
-                      ylim=ranges$y, 
-                      expand = TRUE) + 
+    ggplot(filtered_df(), aes(x, y)) +
+      geom_point(alpha=.5) +
+      coord_cartesian(xlim=ranges$x,
+                      ylim=ranges$y,
+                      expand = TRUE) +
       theme_bw()
   })
 
@@ -78,18 +79,18 @@ server <- function(input, output, session) {
     if (!is.null(brush)) {
       ranges$x <- c(brush$xmin, brush$xmax)
       ranges$y <- c(brush$ymin, brush$ymax)
-      
+
     } else {
       ranges$x <- NULL
       ranges$y <- NULL
     }
   })
-    
-  
+
+
   output$brush_info <- renderPrint({
     brushedPoints(df, input$plot1_brush)[COLS]
   })
-  
+
   observeEvent(input$update, {
     tmp = brushedPoints(df, input$plot1_brush)
     df[df$shiny_id %in% tmp$shiny_id, "shiny_label"] <<- input$tag
@@ -97,11 +98,11 @@ server <- function(input, output, session) {
     updateTextInput(session, "tag", value="")
     # reset the brush
     session$resetBrush("plot1_brush")
-    
+
     #update the reactive dataframe
     mt$data <- df
   })
-  
+
   # Downloadable csv of selected dataset ----
   output$downloadFile <- downloadHandler(
     filename = function() {
@@ -111,7 +112,7 @@ server <- function(input, output, session) {
       write.csv(df, file, row.names = FALSE)
     }
   )
-  
+
 }
 
 shinyApp(ui, server)
